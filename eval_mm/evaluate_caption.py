@@ -12,6 +12,12 @@ from pycocotools.coco import COCO
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
+import sys
+sys.path.append('/root/autodl-tmp/Qwen-VL')
+from Crop_Prompt_No_Padding import crop_prompting
+
+import shutil
+
 ds_collections = {
     'flickr': {
         'train': 'data/flickr30k/flickr30k_karpathy_test.json',
@@ -26,7 +32,7 @@ ds_collections = {
 
 class CaptionDataset(torch.utils.data.Dataset):
 
-    def __init__(self, train, test, prompt, few_shot=0):
+    def __init__(self, train, test, prompt, tmp_dir, few_shot=0):
         self.images = json.load(open(test))['images']
         self.prompt = prompt
 
@@ -34,12 +40,15 @@ class CaptionDataset(torch.utils.data.Dataset):
         if few_shot > 0:
             self.train = json.load(open(train))['annotations']
 
+        self.tmp_dir = tmp_dir
+
     def __len__(self):
         return len(self.images)
 
     def __getitem__(self, idx):
-        image_id, image_path = self.images[idx]['id'], self.images[idx][
-            'image']
+        image_id, image_path = self.images[idx]['id'], self.images[idx]['image']
+
+        crop_prompt = crop_prompting(image_path, str(image_id), self.tmp_dir)
 
         few_shot_prompt = ''
         if self.few_shot > 0:
@@ -50,7 +59,7 @@ class CaptionDataset(torch.utils.data.Dataset):
 
         return {
             'image_id': image_id,
-            'input_text': few_shot_prompt + self.prompt.format(image_path)
+            'input_text': crop_prompt + few_shot_prompt + self.prompt.format(image_path)
         }
 
 
@@ -114,7 +123,7 @@ if __name__ == '__main__':
     prompt = '<img>{}</img>Describe the image in English:'
 
     model = AutoModelForCausalLM.from_pretrained(
-        args.checkpoint, device_map='cuda', trust_remote_code=True).eval()
+        args.checkpoint, device_map='cuda', trust_remote_code=True, use_flash_attn=True).eval()
 
     tokenizer = AutoTokenizer.from_pretrained(args.checkpoint,
                                               trust_remote_code=True)
@@ -122,11 +131,15 @@ if __name__ == '__main__':
     tokenizer.pad_token_id = tokenizer.eod_id
 
     random.seed(args.seed)
+
+    tmp_dir = '/root/autodl-tmp/Qwen-VL/tmp'
+
     dataset = CaptionDataset(
         train=ds_collections[args.dataset]['train'],
         test=ds_collections[args.dataset]['test'],
         prompt=prompt,
         few_shot=args.few_shot,
+        tmp_dir=tmp_dir,
     )
     coco_karpathy_test_loader = torch.utils.data.DataLoader(
         dataset=dataset,
@@ -160,6 +173,7 @@ if __name__ == '__main__':
             tokenizer.decode(_[input_ids.size(1):].cpu(),
                              skip_special_tokens=True).strip() for _ in pred
         ])
+        
 
     torch.distributed.barrier()
 
@@ -183,6 +197,9 @@ if __name__ == '__main__':
                 'image_id': int(image_id),
                 'caption': caption,
             })
+            if os.path.exists(os.path.join(tmp_dir, str(image_id))):
+                shutil.rmtree(os.path.join(tmp_dir, str(image_id)))
+                
         time_prefix = time.strftime('%y%m%d%H%M%S', time.localtime())
         results_file = f'{args.dataset}_{time_prefix}.json'
         json.dump(results, open(results_file, 'w'))

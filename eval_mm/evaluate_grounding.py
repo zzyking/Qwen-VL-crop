@@ -10,6 +10,12 @@ from torchvision.ops.boxes import box_area
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
+import sys
+sys.path.append('/root/autodl-tmp/Qwen-VL')
+from Crop_Prompt import crop_prompting
+
+import shutil
+
 ds_collections = {
     'refcoco_val': 'data/refcoco/refcoco_val.jsonl',
     'refcoco_testA': 'data/refcoco/refcoco_testA.jsonl',
@@ -51,10 +57,11 @@ def collate_fn(batches, tokenizer):
 
 class RefCOCODataset(torch.utils.data.Dataset):
 
-    def __init__(self, test, tokenizer, prompt):
+    def __init__(self, test, tokenizer, prompt, tmp_dir):
         self.datas = open(test).readlines()
         self.tokenizer = tokenizer
         self.prompt = prompt
+        self.tmp_dir = tmp_dir
 
     def __len__(self):
         return len(self.datas)
@@ -65,10 +72,14 @@ class RefCOCODataset(torch.utils.data.Dataset):
         text = data['sent']
         bbox = data['bbox']
 
+        image_id = os.path.splitext(os.path.basename(image))
+
         w, h = data['width'], data['height']
 
+        crop_prompt = crop_prompting(image, image_id, self.tmp_dir)
+
         return {
-            'text': self.prompt.format(image, text),
+            'text': crop_prompt + self.prompt.format(image, text),
             'bbox': bbox,
             'hw': (h, w),
         }
@@ -119,7 +130,7 @@ if __name__ == '__main__':
     torch.cuda.set_device(int(os.getenv('LOCAL_RANK', 0)))
 
     model = AutoModelForCausalLM.from_pretrained(
-        args.checkpoint, device_map='cuda', trust_remote_code=True).eval()
+        args.checkpoint, device_map='cuda', trust_remote_code=True, use_flash_attn=True).eval()
 
     tokenizer = AutoTokenizer.from_pretrained(args.checkpoint,
                                               trust_remote_code=True)
@@ -128,9 +139,13 @@ if __name__ == '__main__':
 
     prompt = '<img>{}</img><ref>{}</ref><box>'
 
+    tmp_dir = '/root/autodl-tmp/Qwen-VL/tmp'
+
     dataset = RefCOCODataset(test=ds_collections[args.dataset],
                              tokenizer=tokenizer,
-                             prompt=prompt)
+                             prompt=prompt,
+                             tmp_dir=tmp_dir,
+                        )
 
     dataloader = torch.utils.data.DataLoader(
         dataset=dataset,

@@ -13,6 +13,12 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from vqa import VQA
 from vqa_eval import VQAEval
 
+import sys
+sys.path.append('/root/autodl-tmp/Qwen-VL')
+from Crop_Prompt_No_Padding import crop_prompting
+
+import shutil
+
 ds_collections = {
     'vqav2_val': {
         'train': 'data/vqav2/vqav2_train.jsonl',
@@ -192,13 +198,15 @@ def collate_fn(batches, tokenizer):
 
 class VQADataset(torch.utils.data.Dataset):
 
-    def __init__(self, train, test, prompt, few_shot):
+    def __init__(self, train, test, prompt, few_shot, tmp_dir):
         self.test = open(test).readlines()
         self.prompt = prompt
 
         self.few_shot = few_shot
         if few_shot > 0:
             self.train = open(train).readlines()
+
+        self.tmp_dir = tmp_dir
 
     def __len__(self):
         return len(self.test)
@@ -207,6 +215,8 @@ class VQADataset(torch.utils.data.Dataset):
         data = json.loads(self.test[idx].strip())
         image, question, question_id, annotation = data['image'], data[
             'question'], data['question_id'], data.get('answer', None)
+        
+        crop_prompt = crop_prompting(image, str(os.path.splitext(os.path.basename(image))[0]), self.tmp_dir)
 
         few_shot_prompt = ''
         if self.few_shot > 0:
@@ -216,9 +226,11 @@ class VQADataset(torch.utils.data.Dataset):
                 few_shot_prompt += self.prompt.format(
                     sample['image'],
                     sample['question']) + f" {sample['answer']}"
+        
 
         return {
-            'question': few_shot_prompt + self.prompt.format(image, question),
+            'question': crop_prompt + few_shot_prompt + self.prompt.format(image, question),
+            #'question': few_shot_prompt + self.prompt.format(image, question),
             'question_id': question_id,
             'annotation': annotation
         }
@@ -271,21 +283,24 @@ if __name__ == '__main__':
     torch.cuda.set_device(int(os.getenv('LOCAL_RANK', 0)))
 
     model = AutoModelForCausalLM.from_pretrained(
-        args.checkpoint, device_map='cuda', trust_remote_code=True).eval()
+        args.checkpoint, device_map='cuda', trust_remote_code=True, use_flash_attn=True).eval()
 
-    tokenizer = AutoTokenizer.from_pretrained(args.checkpoint,
-                                              trust_remote_code=True)
+    tokenizer = AutoTokenizer.from_pretrained(args.checkpoint, trust_remote_code=True)
     tokenizer.padding_side = 'left'
     tokenizer.pad_token_id = tokenizer.eod_id
 
     prompt = '<img>{}</img>{} Answer:'
 
     random.seed(args.seed)
+
+    tmp_dir = '/root/autodl-tmp/Qwen-VL/tmp'
+    
     dataset = VQADataset(
         train=ds_collections[args.dataset]['train'],
         test=ds_collections[args.dataset]['test'],
         prompt=prompt,
         few_shot=args.few_shot,
+        tmp_dir=tmp_dir,
     )
 
     dataloader = torch.utils.data.DataLoader(
@@ -317,11 +332,11 @@ if __name__ == '__main__':
         )
         answers = [
             tokenizer.decode(_[input_ids.size(1):].cpu(),
-                             skip_special_tokens=True).strip() for _ in pred
+                            skip_special_tokens=True).strip() for _ in pred
         ]
 
         for question_id, answer, annotation in zip(question_ids, answers,
-                                                   annotations):
+                                                annotations):
             if args.dataset in ['vqav2_val', 'vqav2_testdev', 'okvqa_val', 'textvqa_val', 'vizwiz_val']:
                 outputs.append({
                     'question_id': question_id,
@@ -356,6 +371,11 @@ if __name__ == '__main__':
                 })
             else:
                 raise NotImplementedError
+                        
+            torch._C._cuda_emptyCache()
+
+            #if os.path.exists(os.path.join(tmp_dir, str(question_id))):
+                #shutil.rmtree(os.path.join(tmp_dir, str(question_id)))
 
     torch.distributed.barrier()
 
@@ -374,7 +394,7 @@ if __name__ == '__main__':
 
         if ds_collections[args.dataset]['metric'] == 'vqa_score':
             vqa = VQA(ds_collections[args.dataset]['annotation'],
-                      ds_collections[args.dataset]['question'])
+                    ds_collections[args.dataset]['question'])
             results = vqa.loadRes(
                 resFile=results_file,
                 quesFile=ds_collections[args.dataset]['question'])
@@ -385,14 +405,14 @@ if __name__ == '__main__':
 
         elif ds_collections[args.dataset]['metric'] == 'anls':
             json.dump(merged_outputs,
-                      open(results_file, 'w'),
-                      ensure_ascii=False)
+                    open(results_file, 'w'),
+                    ensure_ascii=False)
             print('python infographicsvqa_eval.py -g ' +
-                  ds_collections[args.dataset]['annotation'] + ' -s ' +
-                  results_file)
+                ds_collections[args.dataset]['annotation'] + ' -s ' +
+                results_file)
             os.system('python infographicsvqa_eval.py -g ' +
-                      ds_collections[args.dataset]['annotation'] + ' -s ' +
-                      results_file)
+                    ds_collections[args.dataset]['annotation'] + ' -s ' +
+                    results_file)
         elif ds_collections[args.dataset]['metric'] == 'relaxed_accuracy':
             print({
                 'relaxed_accuracy': evaluate_relaxed_accuracy(merged_outputs)

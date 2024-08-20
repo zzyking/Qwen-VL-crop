@@ -8,6 +8,10 @@ import torch
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
+import sys
+sys.path.append('/root/autodl-tmp/Qwen-VL')
+from Crop_Prompt_grounding import crop_prompting
+
 multiple_choices = ['A', 'B', 'C', 'D', 'E']
 
 ds_collections = {
@@ -37,12 +41,13 @@ def collate_fn(batches, pad_token_id):
     return input_tokens, attention_mask, target_lengths, answers, chunk_sizes
 
 
-class MultipleChoiceDataste(torch.utils.data.Dataset):
+class MultipleChoiceDataset(torch.utils.data.Dataset):
 
-    def __init__(self, test, prompt, tokenizer):
+    def __init__(self, test, prompt, tokenizer, tmp_dir):
         self.datas = open(test).readlines()
         self.prompt = prompt
         self.tokenizer = tokenizer
+        self.tmp_dir = tmp_dir
 
     def __len__(self):
         return len(self.datas)
@@ -51,8 +56,12 @@ class MultipleChoiceDataste(torch.utils.data.Dataset):
 
         data = json.loads(self.datas[idx].strip())
         image = data['image']
-        hint = data['hint'] if data['hint'] else 'N/A'
+        hint = data['hint'] if data['hint'] else ''
         question = data['question']
+        
+        crop_prompt = crop_prompting(image, self.tmp_dir)
+        hint = crop_prompt + hint
+        if hint == '': hint = 'N/A'
 
         choices = data['choices']
         choice_list = []
@@ -120,16 +129,21 @@ if __name__ == '__main__':
     torch.cuda.set_device(int(os.getenv('LOCAL_RANK', 0)))
 
     model = AutoModelForCausalLM.from_pretrained(
-        args.checkpoint, device_map='cuda', trust_remote_code=True).eval()
+        args.checkpoint, device_map='cuda', trust_remote_code=True, use_flash_attn=True).eval()
 
     tokenizer = AutoTokenizer.from_pretrained(args.checkpoint,
                                               trust_remote_code=True)
 
     prompt = '<img>{}</img>Context: {}\nQuestion: {}\nOptions: {}\nAnswer:'
 
-    dataset = MultipleChoiceDataste(test=ds_collections[args.dataset]['test'],
+    tmp_dir = '/root/autodl-tmp/Qwen-VL/tmp'
+
+    dataset = MultipleChoiceDataset(test=ds_collections[args.dataset]['test'],
                                     prompt=prompt,
-                                    tokenizer=tokenizer)
+                                    tokenizer=tokenizer,
+                                    tmp_dir=tmp_dir,
+                                )
+
     dataloader = torch.utils.data.DataLoader(
         dataset=dataset,
         sampler=InferenceSampler(len(dataset)),
