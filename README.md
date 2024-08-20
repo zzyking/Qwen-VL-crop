@@ -9,5 +9,6 @@ The structure of the designed prompt:
     <img src="assets/prompt_structure.png" />
 <p>
 
+The evaluation scripts can be found [here](eval_mm/README.md).
 
 See <a href="README_Qwen.md">README_Qwen</a> for more information.
