@@ -23,7 +23,7 @@ model = AutoModelForCausalLM.from_pretrained("Qwen/Qwen-VL", device_map="cuda", 
 
 # Specify hyperparameters for generation (No need to do this if you are using transformers>4.32.0)
 # model.generation_config = GenerationConfig.from_pretrained("Qwen/Qwen-VL", trust_remote_code=True)
-image_path = '/root/autodl-tmp/Qwen-VL/examples/textvqa_2.jpg'
+image_path = '/root/autodl-tmp/Qwen-VL/examples/caption_hard_lowres.jpg'
 
 image = Image.open(image_path)
 if image.mode == "P":
@@ -34,7 +34,7 @@ width, height = image.size
 
 query_list = [
 {'image': image_path}, 
-{'text': 'What is the plane number? Answer:'}
+{'text': 'Describe this image in detail:'}
 ]
 
 query = tokenizer.from_list_format(query_list)

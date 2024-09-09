@@ -10,20 +10,20 @@ import sys
 sys.path.append('/root/autodl-tmp/Qwen-VL')
 from Crop_Prompt_No_Padding import crop_prompting
 
-tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen-VL", trust_remote_code=True)
+tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen-VL-Chat", trust_remote_code=True)
 
 # use bf16
 # model = AutoModelForCausalLM.from_pretrained("Qwen/Qwen-VL", device_map="auto", trust_remote_code=True, bf16=True).eval()
 # use fp16
-# model = AutoModelForCausalLM.from_pretrained("Qwen/Qwen-VL", device_map="auto", trust_remote_code=True, fp16=True).eval()
+#model = AutoModelForCausalLM.from_pretrained("Qwen/Qwen-VL", device_map="auto", trust_remote_code=True, fp16=True).eval()
 # use cpu only
 # model = AutoModelForCausalLM.from_pretrained("Qwen/Qwen-VL", device_map="cpu", trust_remote_code=True).eval()
 # use cuda device
-model = AutoModelForCausalLM.from_pretrained("Qwen/Qwen-VL", device_map="cuda", trust_remote_code=True).eval()
+model = AutoModelForCausalLM.from_pretrained("Qwen/Qwen-VL-Chat", device_map="cuda", trust_remote_code=True).eval()
 
 # Specify hyperparameters for generation (No need to do this if you are using transformers>4.32.0)
 # model.generation_config = GenerationConfig.from_pretrained("Qwen/Qwen-VL", trust_remote_code=True)
-image_path = '/root/autodl-tmp/Qwen-VL/examples/caption_hard_hires.jpg'
+image_path = '/root/autodl-tmp/Qwen-VL/examples/caption_easy_lowres.jpg'
 
 image = Image.open(image_path)
 if image.mode == "P":
@@ -44,7 +44,7 @@ schemes = {
   (4, 1): (3, float('inf')) # 3:1 and beyond
 }
 
-# Select the appropriate scheme based on the ratio
+# Select the appropri ate scheme based on the ratio
 selected_scheme = None
 for scheme, (min_ratio, max_ratio) in schemes.items():
   if min_ratio <= ratio < max_ratio:
@@ -64,7 +64,7 @@ for row in range(rows):
     crop = image.crop((left, upper, right, lower))
     crops.append(crop)
 
-query_list = [{'text': f'<context>The original image has a resolution of {width}x{height}. The following are parts of the original image with a resolution of {crop_width}x{crop_height} and their corresponding indices. There are {cols*rows} parts in total.\n '},]
+query_list = [{'text': f'<context>\nThe entire image has a resolution of {width}x{height}. The following are parts of the entire image with the same size. Their relative positions in the original image will be denoted as [`left`,`top`,`right`,`down`], in which the four variables are normalized to [0,1000). There are {cols}x{rows} parts in total.\n'}]
 
 with tempfile.TemporaryDirectory() as tmp:
   for j in range(rows):
@@ -73,21 +73,24 @@ with tempfile.TemporaryDirectory() as tmp:
       crops[j * cols + i].save(crop_path)
       query_list.extend([
         {'image': crop_path},
-        {'text': f'this is the {j * cols + i + 1}th crop, with the upperleft coordinate of ({i * crop_width}, {j * crop_height}).\n'},
+        {'text': f'({i*1000/cols},{j*1000/rows}),{(i+1)*1000/cols},{(j+1)*1000/rows}]\n'}
       ])
 
   query_list.extend([
-      {'text': '</context>Information of different parts of the original image are within the <context> label and can be used as reference when answering the questions.\n'},
-      {'image': image_path}, 
-      {'text': 'You are a powerful image captioner. Instead of describing the imaginary content, only describ ing the content one can determine confidently from the image. Do not describe the contents by itemizing them in list form. Minimize aesthetic descriptions as much as possible.Describe the image in detail:'}, # Caption
+      {'text': f'</context>\n\nThe information above is provided as context to assist your understanding. Picture {cols*rows+1} is the entire image and your task is as follows:\n'},
+      {'image': image_path},
+      {'text': '\n<instructions>\n1. Examine the full image carefully.\n2. Use the crop information as background knowledge ONLY.\n3. Generate ONE comprehensive caption for the entire image shown.\n4. Focus on describing the overall scene and main elements visible.\n5. Do not caption individual crops or break your response into sections.\n</instructions>\n\nDescribe this image as detailed as possible:'}
+       # Caption
       #{'text': 'What is the plane number? Answer:'} # VQA
 
   ])
 
   query = tokenizer.from_list_format(query_list)
+  #print(query)
+  #tokens = tokenizer.encode(query, add_special_tokens=True)
+  #token_count = len(tokens)
 
-  inputs = tokenizer(query, return_tensors='pt')
-  inputs = inputs.to(model.device)
-  pred = model.generate(**inputs)
-  response = tokenizer.decode(pred.cpu()[0], skip_special_tokens=False)
+  #print(token_count)
+  response, history = model.chat(tokenizer, query=query, history=None)
+
   print(response)
