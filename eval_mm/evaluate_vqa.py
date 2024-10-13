@@ -14,8 +14,8 @@ from vqa import VQA
 from vqa_eval import VQAEval
 
 import sys
-sys.path.append('/root/autodl-tmp/Qwen-VL')
-from Crop_Prompt_No_Padding import crop_prompting
+sys.path.append('/home/zzy/Qwen-VL-crop')
+from Crop_Prompt_CoT import crop_prompting
 
 import shutil
 
@@ -78,14 +78,14 @@ ds_collections = {
         'max_new_tokens': 100,
     },
     'chartqa_test_human': {
-        'train': 'data/chartqa/train_human.jsonl',
-        'test': 'data/chartqa/test_human.jsonl',
+        'train': '/raid_sdd/zzy/19/data/chartqa/train_human.jsonl',
+        'test': '/raid_sdd/zzy/19/data/chartqa/test_human.jsonl',
         'metric': 'relaxed_accuracy',
         'max_new_tokens': 100,
     },
     'chartqa_test_augmented': {
-        'train': 'data/chartqa/train_augmented.jsonl',
-        'test': 'data/chartqa/test_augmented.jsonl',
+        'train': '/raid_sdd/zzy/19/data/chartqa/train_augmented.jsonl',
+        'test': '/raid_sdd/zzy/19/data/chartqa/test_augmented.jsonl',
         'metric': 'relaxed_accuracy',
         'max_new_tokens': 100,
     },
@@ -216,7 +216,10 @@ class VQADataset(torch.utils.data.Dataset):
         image, question, question_id, annotation = data['image'], data[
             'question'], data['question_id'], data.get('answer', None)
         
+        image = '/raid_sdd/zzy/19/' + image
+
         crop_prompt = crop_prompting(image, str(os.path.splitext(os.path.basename(image))[0]), self.tmp_dir)
+        #crop_prompt = ''
 
         few_shot_prompt = ''
         if self.few_shot > 0:
@@ -229,7 +232,7 @@ class VQADataset(torch.utils.data.Dataset):
         
 
         return {
-            'question': crop_prompt + few_shot_prompt + self.prompt.format(image, question),
+            'question': crop_prompt + few_shot_prompt + self.prompt.format(question),
             #'question': few_shot_prompt + self.prompt.format(image, question),
             'question_id': question_id,
             'annotation': annotation
@@ -289,11 +292,12 @@ if __name__ == '__main__':
     tokenizer.padding_side = 'left'
     tokenizer.pad_token_id = tokenizer.eod_id
 
-    prompt = '<img>{}</img>{} Answer:'
+    #prompt = '<|im_start|>user\n{}<|im_end|>\n<|im_start|>assistant\nAnswer:'
+    prompt = '{} Answer:'
 
     random.seed(args.seed)
 
-    tmp_dir = '/root/autodl-tmp/Qwen-VL/tmp'
+    tmp_dir = '/home/zzy/Qwen-VL-crop/tmp'
     
     dataset = VQADataset(
         train=ds_collections[args.dataset]['train'],

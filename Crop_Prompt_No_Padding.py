@@ -8,8 +8,8 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 def crop_prompting(image_path, question_id, tmp_dir):
   crop_prompt = ''
   image = Image.open(image_path)
-  if image.mode == "P":
-    image = image.convert('RGB')
+  # if image.mode == "P":
+  image = image.convert('RGB')
   crops = []
   width, height = image.size
 

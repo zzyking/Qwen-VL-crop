@@ -18,21 +18,35 @@ model = AutoModelForCausalLM.from_pretrained("Qwen/Qwen-VL-Chat", device_map="cu
 # Specify hyperparameters for generation
 model.generation_config = GenerationConfig.from_pretrained("Qwen/Qwen-VL-Chat", trust_remote_code=True)
 
-# 1st dialogue turn
+
+sizes = [(448,448),(896,896),(1792,1792),(3584,3584),(7168,7168)]
+# sizes = [(256,256),(128,128),(64,64),(32,32),(16,16),(8,8)]
+
+name = 'clock2'
+
+for target_size in sizes:
+  query = tokenizer.from_list_format([
+      {'image': f'/home/zzy/Qwen-VL-crop/examples/pad/{name}_{target_size[0]}x{target_size[1]}.jpg'}, # Either a local path or an url
+      {'text': 'What is this?'},
+  ]) 
+  response, history = model.chat(tokenizer, query=query, history=None)
+  print(target_size)
+  print(response)
+
+"""
 query = tokenizer.from_list_format([
-    {'image': 'https://qianwen-res.oss-cn-beijing.aliyuncs.com/Qwen-VL/assets/demo.jpeg'}, # Either a local path or an url
-    {'text': '这是什么?'},
+    {'image': f'/home/zzy/Qwen-VL-crop/examples/rescale/{name}.jpg'}, # Either a local path or an url
+    {'text': 'What is this?'},
 ]) 
 response, history = model.chat(tokenizer, query=query, history=None)
 print(response)
-# 图中是一名女子在沙滩上和狗玩耍，旁边是一只拉布拉多犬，它们处于沙滩上。
 
-# 2nd dialogue turn
-response, history = model.chat(tokenizer, '框出图中击掌的位置', history=history)
-print(response)
-# <ref>击掌</ref><box>(536,509),(588,602)</box>
+"""
+
+"""
 image = tokenizer.draw_bbox_on_latest_picture(response, history)
 if image:
   image.save('1.jpg')
 else:
   print("no box")
+"""

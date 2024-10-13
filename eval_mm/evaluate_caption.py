@@ -13,7 +13,7 @@ from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 import sys
-sys.path.append('/root/autodl-tmp/Qwen-VL')
+sys.path.append('/home/zzy/Qwen-VL-crop')
 from Crop_Prompt_No_Padding import crop_prompting
 
 import shutil
@@ -47,6 +47,8 @@ class CaptionDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         image_id, image_path = self.images[idx]['id'], self.images[idx]['image']
+
+        image_path = '/raid_sdd/zzy/19/' + image_path
 
         crop_prompt = crop_prompting(image_path, str(image_id), self.tmp_dir)
 
@@ -132,7 +134,7 @@ if __name__ == '__main__':
 
     random.seed(args.seed)
 
-    tmp_dir = '/root/autodl-tmp/Qwen-VL/tmp'
+    tmp_dir = '/home/zzy/Qwen-VL-crop/tmp'
 
     dataset = CaptionDataset(
         train=ds_collections[args.dataset]['train'],
