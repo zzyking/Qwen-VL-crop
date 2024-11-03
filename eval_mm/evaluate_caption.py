@@ -20,12 +20,12 @@ import shutil
 
 ds_collections = {
     'flickr': {
-        'train': 'data/flickr30k/flickr30k_karpathy_test.json',
-        'test': 'data/flickr30k/flickr30k_karpathy_test.json',
+        'train': '/raid_sdd/zzy/19/data/flickr30k/flickr30k_karpathy_test.json',
+        'test': '/raid_sdd/zzy/19/data/flickr30k/flickr30k_karpathy_test.json',
     },
     'nocaps': {
         'train': '',
-        'test': 'data/nocaps/nocaps_val.json',
+        'test': '/raid_sdd/zzy/19/data/nocaps/nocaps_val.json',
     },
 }
 
@@ -51,6 +51,7 @@ class CaptionDataset(torch.utils.data.Dataset):
         image_path = '/raid_sdd/zzy/19/' + image_path
 
         crop_prompt = crop_prompting(image_path, str(image_id), self.tmp_dir)
+        #crop_prompt = ''
 
         few_shot_prompt = ''
         if self.few_shot > 0:
@@ -125,7 +126,7 @@ if __name__ == '__main__':
     prompt = '<img>{}</img>Describe the image in English:'
 
     model = AutoModelForCausalLM.from_pretrained(
-        args.checkpoint, device_map='cuda', trust_remote_code=True, use_flash_attn=True).eval()
+        args.checkpoint, device_map='cuda:2', trust_remote_code=True, use_flash_attn=True).eval()
 
     tokenizer = AutoTokenizer.from_pretrained(args.checkpoint,
                                               trust_remote_code=True)
@@ -158,8 +159,8 @@ if __name__ == '__main__':
     for _, (ids, input_ids,
             attention_mask) in tqdm(enumerate(coco_karpathy_test_loader)):
         pred = model.generate(
-            input_ids=input_ids.cuda(),
-            attention_mask=attention_mask.cuda(),
+            input_ids=input_ids.to("cuda:2"),
+            attention_mask=attention_mask.to("cuda:2"),
             do_sample=False,
             num_beams=1,
             max_new_tokens=30,

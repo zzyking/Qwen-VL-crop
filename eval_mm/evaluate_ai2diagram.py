@@ -14,102 +14,102 @@ from vqa import VQA
 from vqa_eval import VQAEval
 
 import sys
-sys.path.append('/root/autodl-tmp/Qwen-VL')
+sys.path.append('/home/zzy/Qwen-VL-crop')
 from Crop_Prompt_No_Padding import crop_prompting
 
 import shutil
 
 ds_collections = {
     'vqav2_val': {
-        'train': 'data/vqav2/vqav2_train.jsonl',
-        'test': 'data/vqav2/vqav2_val.jsonl',
-        'question': 'data/vqav2/v2_OpenEnded_mscoco_val2014_questions.json',
-        'annotation': 'data/vqav2/v2_mscoco_val2014_annotations.json',
+        'train': '/raid_sdd/zzy/19/data/vqav2/vqav2_train.jsonl',
+        'test': '/raid_sdd/zzy/19/data/vqav2/vqav2_val.jsonl',
+        'question': '/raid_sdd/zzy/19/data/vqav2/v2_OpenEnded_mscoco_val2014_questions.json',
+        'annotation': '/raid_sdd/zzy/19/data/vqav2/v2_mscoco_val2014_annotations.json',
         'metric': 'vqa_score',
         'max_new_tokens': 10,
     },
     'vqav2_testdev': {
-        'train': 'data/vqav2/vqav2_train.jsonl',
-        'test': 'data/vqav2/vqav2_testdev.jsonl',
+        'train': '/raid_sdd/zzy/19/data/vqav2/vqav2_train.jsonl',
+        'test': '/raid_sdd/zzy/19/data/vqav2/vqav2_testdev.jsonl',
         'metric': None,
         'max_new_tokens': 10,
     },
     'okvqa_val': {
-        'train': 'data/okvqa/okvqa_train.jsonl',
-        'test': 'data/okvqa/okvqa_val.jsonl',
-        'question': 'data/okvqa/OpenEnded_mscoco_val2014_questions.json',
-        'annotation': 'data/okvqa/mscoco_val2014_annotations.json',
+        'train': '/raid_sdd/zzy/19/data/okvqa/okvqa_train.jsonl',
+        'test': '/raid_sdd/zzy/19/data/okvqa/okvqa_val.jsonl',
+        'question': '/raid_sdd/zzy/19/data/okvqa/OpenEnded_mscoco_val2014_questions.json',
+        'annotation': '/raid_sdd/zzy/19/data/okvqa/mscoco_val2014_annotations.json',
         'metric': 'vqa_score',
         'max_new_tokens': 10,
     },
     'textvqa_val': {
-        'train': 'data/textvqa/textvqa_train.jsonl',
-        'test': 'data/textvqa/textvqa_val.jsonl',
-        'question': 'data/textvqa/textvqa_val_questions.json',
-        'annotation': 'data/textvqa/textvqa_val_annotations.json',
+        'train': '/raid_sdd/zzy/19/data/textvqa/textvqa_train.jsonl',
+        'test': '/raid_sdd/zzy/19/data/textvqa/textvqa_val.jsonl',
+        'question': '/raid_sdd/zzy/19/data/textvqa/textvqa_val_questions.json',
+        'annotation': '/raid_sdd/zzy/19/data/textvqa/textvqa_val_annotations.json',
         'metric': 'vqa_score',
         'max_new_tokens': 10,
     },
     'vizwiz_val': {
-        'train': 'data/vizwiz/vizwiz_train.jsonl',
-        'test': 'data/vizwiz/vizwiz_val.jsonl',
-        'question': 'data/vizwiz/vizwiz_val_questions.json',
-        'annotation': 'data/vizwiz/vizwiz_val_annotations.json',
+        'train': '/raid_sdd/zzy/19/data/vizwiz/vizwiz_train.jsonl',
+        'test': '/raid_sdd/zzy/19/data/vizwiz/vizwiz_val.jsonl',
+        'question': '/raid_sdd/zzy/19/data/vizwiz/vizwiz_val_questions.json',
+        'annotation': '/raid_sdd/zzy/19/data/vizwiz/vizwiz_val_annotations.json',
         'metric': 'vqa_score',
         'max_new_tokens': 10,
     },
     'vizwiz_test': {
-        'train': 'data/vizwiz/vizwiz_train.jsonl',
-        'test': 'data/vizwiz/vizwiz_test.jsonl',
+        'train': '/raid_sdd/zzy/19/data/vizwiz/vizwiz_train.jsonl',
+        'test': '/raid_sdd/zzy/19/data/vizwiz/vizwiz_test.jsonl',
         'metric': None,
         'max_new_tokens': 10,
     },
     'docvqa_val': {
-        'train': 'data/docvqa/train.jsonl',
-        'test': 'data/docvqa/val.jsonl',
-        'annotation': 'data/docvqa/val/val_v1.0.json',
+        'train': '/raid_sdd/zzy/19/data/docvqa/train.jsonl',
+        'test': '/raid_sdd/zzy/19/data/docvqa/val.jsonl',
+        'annotation': '/raid_sdd/zzy/19/data/docvqa/val/val_v1.0.json',
         'metric': 'anls',
         'max_new_tokens': 100,
     },
     'docvqa_test': {
-        'train': 'data/docvqa/train.jsonl',
-        'test': 'data/docvqa/test.jsonl',
+        'train': '/raid_sdd/zzy/19/data/docvqa/train.jsonl',
+        'test': '/raid_sdd/zzy/19/data/docvqa/test.jsonl',
         'metric': None,
         'max_new_tokens': 100,
     },
     'chartqa_test_human': {
-        'train': 'data/chartqa/train_human.jsonl',
-        'test': 'data/chartqa/test_human.jsonl',
+        'train': '/raid_sdd/zzy/19/data/chartqa/train_human.jsonl',
+        'test': '/raid_sdd/zzy/19/data/chartqa/test_human.jsonl',
         'metric': 'relaxed_accuracy',
         'max_new_tokens': 100,
     },
     'chartqa_test_augmented': {
-        'train': 'data/chartqa/train_augmented.jsonl',
-        'test': 'data/chartqa/test_augmented.jsonl',
+        'train': '/raid_sdd/zzy/19/data/chartqa/train_augmented.jsonl',
+        'test': '/raid_sdd/zzy/19/data/chartqa/test_augmented.jsonl',
         'metric': 'relaxed_accuracy',
         'max_new_tokens': 100,
     },
     'gqa_testdev': {
-        'train': 'data/gqa/train.jsonl',
-        'test': 'data/gqa/testdev_balanced.jsonl',
+        'train': '/raid_sdd/zzy/19/data/gqa/train.jsonl',
+        'test': '/raid_sdd/zzy/19/data/gqa/testdev_balanced.jsonl',
         'metric': 'accuracy',
         'max_new_tokens': 10,
     },
     'ocrvqa_val': {
-        'train': 'data/ocrvqa/ocrvqa_train.jsonl',
-        'test': 'data/ocrvqa/ocrvqa_val.jsonl',
+        'train': '/raid_sdd/zzy/19/data/ocrvqa/ocrvqa_train.jsonl',
+        'test': '/raid_sdd/zzy/19/data/ocrvqa/ocrvqa_val.jsonl',
         'metric': 'accuracy',
         'max_new_tokens': 100,
     },
     'ocrvqa_test': {
-        'train': 'data/ocrvqa/ocrvqa_train.jsonl',
-        'test': 'data/ocrvqa/ocrvqa_test.jsonl',
+        'train': '/raid_sdd/zzy/19/data/ocrvqa/ocrvqa_train.jsonl',
+        'test': '/raid_sdd/zzy/19/data/ocrvqa/ocrvqa_test.jsonl',
         'metric': 'accuracy',
         'max_new_tokens': 100,
     },
     'ai2diagram_test': {
-        'train': 'data/ai2diagram/train.jsonl',
-        'test': 'data/ai2diagram/test.jsonl',
+        'train': '/raid_sdd/zzy/19/data/ai2diagram/train.jsonl',
+        'test': '/raid_sdd/zzy/19/data/ai2diagram/test.jsonl',
         'metric': 'accuracy',
         'max_new_tokens': 10,
     }
@@ -215,8 +215,11 @@ class VQADataset(torch.utils.data.Dataset):
         data = json.loads(self.test[idx].strip())
         image, question, question_id, annotation = data['image'], data[
             'question'], data['question_id'], data.get('answer', None)
+
+        image = '/raid_sdd/zzy/19/' + image
         
         crop_prompt = crop_prompting(image, question_id, self.tmp_dir)
+        
 
         few_shot_prompt = ''
         if self.few_shot > 0:
@@ -283,7 +286,7 @@ if __name__ == '__main__':
     torch.cuda.set_device(int(os.getenv('LOCAL_RANK', 0)))
 
     model = AutoModelForCausalLM.from_pretrained(
-        args.checkpoint, device_map='cuda', trust_remote_code=True, use_flash_attn=True).eval()
+        args.checkpoint, device_map='cuda:2', trust_remote_code=True, use_flash_attn=True).eval()
 
     tokenizer = AutoTokenizer.from_pretrained(args.checkpoint, trust_remote_code=True)
     tokenizer.padding_side = 'left'
@@ -293,7 +296,7 @@ if __name__ == '__main__':
 
     random.seed(args.seed)
 
-    tmp_dir = '/root/autodl-tmp/Qwen-VL/tmp'
+    tmp_dir = '/home/zzy/Qwen-VL-crop/tmp'
     
     dataset = VQADataset(
         train=ds_collections[args.dataset]['train'],
@@ -317,8 +320,8 @@ if __name__ == '__main__':
     for _, (question_ids, input_ids, attention_mask,
             annotations) in tqdm(enumerate(dataloader)):
         pred = model.generate(
-            input_ids=input_ids.cuda(),
-            attention_mask=attention_mask.cuda(),
+            input_ids=input_ids.to("cuda:2"),
+            attention_mask=attention_mask.to("cuda:2"),
             do_sample=False,
             num_beams=1,
             max_new_tokens=ds_collections[args.dataset]['max_new_tokens'],

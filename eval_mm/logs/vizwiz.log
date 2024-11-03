@@ -1,0 +1,11 @@
+Evaluating vizwiz_val ...
+loading VQA annotations and questions into memory...
+creating index...
+index created!
+Loading and preparing results...     
+DONE (t=0.00s)
+creating index...
+index created!
+computing accuracy
+Finshed Percent: [--------------------] 0% Finshed Percent: [--------------------] 2% Finshed Percent: [#-------------------] 4% Finshed Percent: [#-------------------] 6% Finshed Percent: [##------------------] 9% Finshed Percent: [##------------------] 11% Finshed Percent: [###-----------------] 13% Finshed Percent: [###-----------------] 16% Finshed Percent: [####----------------] 18% Finshed Percent: [####----------------] 20% Finshed Percent: [#####---------------] 23% Finshed Percent: [#####---------------] 25% Finshed Percent: [######--------------] 27% Finshed Percent: [######--------------] 30% Finshed Percent: [######--------------] 32% Finshed Percent: [#######-------------] 34% Finshed Percent: [#######-------------] 37% Finshed Percent: [########------------] 39% Finshed Percent: [########------------] 41% Finshed Percent: [#########-----------] 43% Finshed Percent: [#########-----------] 46% Finshed Percent: [##########----------] 48% Finshed Percent: [##########----------] 50% Finshed Percent: [###########---------] 53% Finshed Percent: [###########---------] 55% Finshed Percent: [############--------] 57% Finshed Percent: [############--------] 60% Finshed Percent: [#############-------] 62% Finshed Percent: [#############-------] 64% Finshed Percent: [#############-------] 67% Finshed Percent: [##############------] 69% Finshed Percent: [##############------] 71% Finshed Percent: [###############-----] 74% Finshed Percent: [###############-----] 76% Finshed Percent: [################----] 78% Finshed Percent: [################----] 81% Finshed Percent: [#################---] 83% Finshed Percent: [#################---] 85% Finshed Percent: [##################--] 87% Finshed Percent: [##################--] 90% Finshed Percent: [###################-] 92% Finshed Percent: [###################-] 94% Finshed Percent: [###################-] 97% Finshed Percent: [####################] 99% Done computing accuracy
+{'overall': 35.25, 'perQuestionType': {'other': 35.25}, 'perAnswerType': {'other': 35.25}}

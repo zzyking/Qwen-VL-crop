@@ -1,6 +1,7 @@
 from PIL import Image, ImageFile
 import math
 import os
+import shutil
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
@@ -57,10 +58,11 @@ def crop_prompting(image_path, question_id, tmp_dir):
   except FileExistsError:
     pass
 
+ 
   for j in range(rows):
     for i in range(cols):
       crop_path = os.path.join(tmp_dir, question_id, f'crop_{j * cols + i + 1}.jpg')
-      crops[j * cols + i].save(crop_path)
+      if not os.path.exists(crop_path): crops[j * cols + i].save(crop_path)
       crop_prompt += f'<img>{crop_path}</img>this is the {j * cols + i + 1}th crop, with the upperleft coordinate of ({i * crop_width}, {j * crop_height}).'
   
   return crop_prompt

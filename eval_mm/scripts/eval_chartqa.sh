@@ -1,4 +1,4 @@
-checkpoint=/home/zzy/.cache/huggingface/hub/models--Qwen--Qwen-VL-Chat/snapshots/f57cfbd358cb56b710d963669ad1bcfb44cdcdd8
+checkpoint=/raid_sdd/zzy/19/.cache/huggingface/hub/models--Qwen--Qwen-VL-Chat/snapshots/f57cfbd358cb56b710d963669ad1bcfb44cdcdd8
 for ds in "chartqa_test_human" "chartqa_test_augmented"
 do
     python -m torch.distributed.launch --use-env \
