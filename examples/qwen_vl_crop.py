@@ -19,7 +19,7 @@ tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen-VL-Chat", cache_dir="/raid_
 # use cpu only
 # model = AutoModelForCausalLM.from_pretrained("Qwen/Qwen-VL", device_map="cpu", trust_remote_code=True).eval()
 # use cuda device
-model = AutoModelForCausalLM.from_pretrained("Qwen/Qwen-VL-Chat", device_map="cuda:2", trust_remote_code=True, cache_dir="/raid_sdd/zzy/19/.cache/huggingface/hub").eval()
+# model = AutoModelForCausalLM.from_pretrained("Qwen/Qwen-VL-Chat", device_map="cuda:2", trust_remote_code=True, cache_dir="/raid_sdd/zzy/19/.cache/huggingface/hub").eval()
 
 # Specify hyperparameters for generation (No need to do this if you are using transformers>4.32.0)
 # model.generation_config = GenerationConfig.from_pretrained("Qwen/Qwen-VL", trust_remote_code=True)
@@ -64,33 +64,21 @@ for row in range(rows):
     crop = image.crop((left, upper, right, lower))
     crops.append(crop)
 
-query_list = [{'text': f'<system_prompt>\nThe entire image has a resolution of {width}x{height}. The following are parts of the entire image with the same size. Their relative positions in the original image will be denoted as [`left`,`top`,`right`,`down`], in which the four variables are normalized to [0,1000). There are {cols}x{rows} parts in total.\n'}]
+query_list = [{'text': f'The original image has a resolution of {width}x{height}. The following are parts of the original image with a resolution of {crop_width}x{crop_height} and their corresponding indices. There are {cols*rows} parts in total.'}]
 
 with tempfile.TemporaryDirectory() as tmp:
   for j in range(rows):
     for i in range(cols):
       crop_path = os.path.join(tmp, f'crop_{j * cols + i + 1}.jpg')
-      crops[j * cols + i].save(crop_path)
+      if not os.path.exists(crop_path): crops[j * cols + i].save(crop_path)
       query_list.extend([
         {'image': crop_path},
-        {'text': f'({i*1000/cols},{j*1000/rows}),({(i+1)*1000/cols},{(j+1)*1000/rows})]\n'}
+        {'text': f'this is the {j * cols + i + 1}th crop, with the upperleft coordinate of ({i * crop_width}, {j * crop_height}).'}
       ])
-
-  query_list.extend([
-      {'text': f'</system_prompt>\n\nThe information above is provided as context to assist your understanding. Picture {cols*rows+1} is the entire image and your task is as follows:\n'},
-      {'image': image_path},
-      {'text': '\n<instructions>\n1. Examine the full image carefully.\n2. Use the crop information as background knowledge ONLY.\n3. Generate ONE comprehensive caption for the entire image shown.\n4. Focus on describing the overall scene and main elements visible.\n5. Do not caption individual crops or break your response into sections.\n</instructions>\n\nDescribe this image in detail:'}
-       # Caption
-      #{'text': 'What is the plane number? Answer:'} # VQA
-
-  ])
 
   query = tokenizer.from_list_format(query_list)
   print(query)
-  #tokens = tokenizer.encode(query, add_special_tokens=True)
-  #token_count = len(tokens)
+  tokens = tokenizer.encode(query, add_special_tokens=True)
+  token_count = len(tokens)
 
-  #print(token_count)
-  response, history = model.chat(tokenizer, query=query, history=None)
-
-  print(response)
+  print(token_count)
